@@ -35,6 +35,10 @@
   text-align: center;
 }
 
+.hide {
+  visibility: hidden;
+}
+
 .task:hover .delete {
   opacity: 1;
 }

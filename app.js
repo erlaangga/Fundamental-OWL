@@ -9,10 +9,10 @@ concurrent mode by default,
 a store and a frontend router
 Owl components are defined with ES6 classes, they use QWeb templates, an underlying virtual DOM, integrates beautifully with hooks, and the rendering is asynchronous.*/
 
-const { Component, mount } = owl;
+const { Component, mount, Store } = owl;
 const { xml } = owl.tags;
 const { whenReady } = owl.utils;
-const { useRef, useState } = owl.hooks;
+const { useRef, useState, useDispatch, useStore } = owl.hooks;
 
 /**
  * This is the javascript code defined in the playground.
@@ -20,24 +20,42 @@ const { useRef, useState } = owl.hooks;
  * sub files.
  */
 
+const actions = {
+  addTask({state}, title) {
+    title = title.trim();
+    if (title){
+      const newTask = {id: state.nextId++, 
+                       title: title,
+                       isCompleted: false};
+      state.tasks.push(newTask);
+    }
+  },
+  toggleTask({state}, id) {
+    const task = state.tasks.find(t => t.id === id);
+    task.isCompleted = !task.isCompleted;
+  },
+  deleteTask({state}, id) {
+    const index = state.tasks.findIndex(t => t.id === id);
+    state.tasks.splice(index, 1);
+  }
+};
+
+const initialState = {
+  nextId: 1,
+  tasks: [],
+};
+
 const TASK_TEMPLATE = xml`
     <div class="task" t-att-class="props.task.isCompleted? 'done' : ''" >
-        <input type="checkbox" t-att-checked="props.task.isCompleted" t-on-click="toggleTask" />
-        <span t-on-click="toggleTask" ><t t-esc="props.task.title"/></span>
-        <span class="delete" t-on-click="deleteTask">🗑</span>
+        <input type="checkbox" t-att-checked="props.task.isCompleted" t-on-click="dispatch('toggleTask', props.task.id)" />
+        <span t-on-click="dispatch('toggleTask', props.task.id)" ><t t-esc="props.task.title"/></span>
+        <span class="delete" t-att-class="props.task.isCompleted? 'hide' : ''" t-on-click="dispatch('deleteTask', props.task.id)">🗑</span>
     </div>`
 
 class Task extends Component {
   static template = TASK_TEMPLATE;
   static props = ["task"];
-
-  toggleTask(){
-    this.trigger('toggle-task', {id: this.props.task.id})
-  }
-
-  deleteTask() {
-    this.trigger('delete-task', {id: this.props.task.id});
-  }
+  dispatch = useDispatch();
 }
 
 const APP_TEMPLATE = xml`
@@ -55,48 +73,32 @@ class App extends Component {
   static components = {Task};
 
   inputRef = useRef("add-input");
-
-  addTask(ev) {
-      // 13 is keycode for ENTER
-      if (ev.keyCode === 13) {
-          const title = ev.target.value.trim();
-          ev.target.value = "";
-          if (title){
-            const newTask = {id: this.nextId++, 
-                             title: title,
-                             isCompleted: false};
-            this.tasks.push(newTask);
-          }
-          // todo
-      }
-  }
-
-  toggleTask(ev) {
-    const task = this.tasks.find(t => t.id === ev.detail.id);
-    task.isCompleted = !task.isCompleted;
-  }
-
-  deleteTask(ev){
-    const index = this.tasks.findIndex(t => t.id === ev.detail.id);
-    this.tasks.splice(index, 1);
-  }
+  tasks = useStore((state) => state.tasks);
+  dispatch = useDispatch();
 
   mounted() {
       this.inputRef.el.focus();
   }
 
-  nextId = 1;
-  tasks = useState([]);
+  addTask(ev) {
+    // 13 is keycode for ENTER
+    if (ev.keyCode === 13) {
+      this.dispatch("addTask", ev.target.value);
+      ev.target.value = "";
+    }
+  }
 }
 
 // Setup code
 function setup() {
   owl.config.mode = "dev";
+  const store = new Store({actions, state:initialState});
+  App.env.store = store;
   mount(App, { target: document.body });
 }
 
 whenReady(setup);
-
+  
 (function () {
   console.log("hello owl", owl.__info__.version);
 })();
