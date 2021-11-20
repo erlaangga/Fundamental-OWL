@@ -62,11 +62,9 @@ class Task extends Component {
 
 const APP_TEMPLATE = xml`
     <div class="todo-app">
-        <input placeholder="Enter a new task" t-on-keyup="addTask" t-ref="add-input"/>
-        <div class="task-list" t-on-toggle-task="toggleTask" t-on-delete-task="deleteTask">
-          <t t-foreach="tasks" t-as="task" t-key="task.id">
-              <Task task="task"/>
-          </t>
+        <input placeholder="Enter a new task" t-on-keyup="addTask" t-ref="add-input" />
+        <div class="task-list" t-on-toggle-task="toggleTask" t-on-delete-task="deleteTask" >
+          <Task task="task" t-foreach="displayedTasks" t-as="task" t-key="task.id" />
         </div>
         <div class="task-panel" t-if="tasks.length">
           <div class="task-counter">
