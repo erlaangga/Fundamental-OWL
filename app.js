@@ -89,12 +89,21 @@ class App extends Component {
   }
 }
 
+function makeStore() {
+  const localState = window.localStorage.getItem("todoapp");
+  const state = localState ? JSON.parse(localState) : initialState;
+  const store = new Store({state, actions});
+  store.on("update", null, () => {
+    localStorage.setItem("todoapp", JSON.stringify(store.state));
+  });
+  return store;
+}
+
 // Setup code
 function setup() {
   owl.config.mode = "dev";
-  const store = new Store({actions, state:initialState});
-  App.env.store = store;
-  mount(App, { target: document.body });
+  const env = {store: makeStore()};
+  mount(App, { target: document.body, env });
 }
 
 whenReady(setup);
