@@ -47,8 +47,10 @@ const initialState = {
 
 const TASK_TEMPLATE = xml`
     <div class="task" t-att-class="props.task.isCompleted? 'done' : ''" >
-        <input type="checkbox" t-att-checked="props.task.isCompleted" t-on-click="dispatch('toggleTask', props.task.id)" />
-        <span t-on-click="dispatch('toggleTask', props.task.id)" ><t t-esc="props.task.title"/></span>
+        <input type="checkbox" t-att-checked="props.task.isCompleted"
+            t-att-id="props.task.id"
+            t-on-click="dispatch('toggleTask', props.task.id)" />
+        <label t-att-for="props.task.id"><t t-esc="props.task.title"/></label>
         <span class="delete" t-att-class="props.task.isCompleted? 'hide' : ''" t-on-click="dispatch('deleteTask', props.task.id)">🗑</span>
     </div>`
 
@@ -62,9 +64,31 @@ const APP_TEMPLATE = xml`
     <div class="todo-app">
         <input placeholder="Enter a new task" t-on-keyup="addTask" t-ref="add-input"/>
         <div class="task-list" t-on-toggle-task="toggleTask" t-on-delete-task="deleteTask">
-            <t t-foreach="tasks" t-as="task" t-key="task.id">
-                <Task task="task"/>
+          <t t-foreach="tasks" t-as="task" t-key="task.id">
+              <Task task="task"/>
+          </t>
+        </div>
+        <div class="task-panel" t-if="tasks.length">
+          <div class="task-counter">
+            <t t-esc="displayedTasks.length" />
+            <t t-if="displayedTasks.length lt tasks.length">
+              / <t t-esc="tasks.length" />
             </t>
+            <t t-if="tasks.length == 1">
+              task
+            </t>
+            <t t-if="tasks.length > 1">
+              tasks
+            </t>
+          </div>
+          <div>
+            <span t-foreach="['all', 'active', 'completed']" 
+                t-as="f" t-key="f"
+                t-att-class="{active: filter.value===f}"
+                t-on-click="setFilter(f)"
+                t-esc="f"
+            />
+          </div>
         </div>
     </div>`
 
@@ -75,6 +99,20 @@ class App extends Component {
   inputRef = useRef("add-input");
   tasks = useStore((state) => state.tasks);
   dispatch = useDispatch();
+
+  filter = useState({value: "all"});
+
+  get displayedTasks(){
+    switch (this.filter.value){
+      case "active": return this.tasks.filter(t=>!t.isCompleted);
+      case "completed": return this.tasks.filter(t=>t.isCompleted);
+      case "all": return this.tasks;
+    }
+  }
+
+  setFilter(filter){
+    this.filter.value = filter;
+  }
 
   mounted() {
       this.inputRef.el.focus();
